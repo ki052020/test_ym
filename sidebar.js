@@ -15,6 +15,13 @@ function Create_FlexStg(parent) {
 	return e_stg;
 }
 
+function Create_TxtDiv(parent, txt) {
+	const e_div_txt = document.createElement('div');
+	e_div_txt.textContent = txt;
+	parent.appendChild(e_div_txt);
+	return e_div_txt;
+}
+
 // =========================================
 function Prms_SendMsg_toCS(request) {
 	return browser.tabs.query({currentWindow: true, active: true})
@@ -38,6 +45,7 @@ const g_frm_general = new function() {
 	m_e_btn_stop.disabled = true;
 
 	const m_e_btn_clear_disp = Create_Btn(m_e_frm, '画面クリア');
+	const m_e_btn_clear_info = Create_Btn(m_e_frm, 'info クリア');
 
 	m_e_btn_start.onclick = () => {
 		g_frm_disp.Append_Txt('--- 連続再生開始');
@@ -58,7 +66,26 @@ const g_frm_general = new function() {
 	m_e_btn_clear_disp.onclick = () => {
 		g_frm_disp.Clear();
 	};
+
+	m_e_btn_clear_info.onclick = () => {
+		g_ym_continue.ClearElapsedTime();
+		g_frm_info.SetTxt('');
+	};
 };
+
+// -----------------------------------------
+function InfoFrame(str) {
+	const mc_str_title = '　' + str + ': ';
+	const m_e_frm = Create_TxtDiv(document.body);
+	m_e_frm.textContent = mc_str_title;
+
+	this.SetTxt = (txt) => {
+		m_e_frm.textContent = mc_str_title + txt;
+	};
+};
+
+const g_frm_elps_time = new InfoFrame('経過時間');
+const g_frm_info = new InfoFrame('info');
 
 // -----------------------------------------
 const g_frm_disp = new function() {
@@ -78,7 +105,10 @@ const g_frm_disp = new function() {
 
 // =========================================
 const g_ym_continue = new function() {
+	const mc_sec_interval = 5;
+
 	let m_timer_id = 0;
+	let m_elapsed_sec = 0;
 
 	this.Start = () =>  {
 		if (m_timer_id !== 0) {
@@ -86,8 +116,7 @@ const g_ym_continue = new function() {
 			return;
 		}
 
-		// 15 秒後ごとにチェックする
-		m_timer_id = setInterval(Chk_YMPlayer, 15000);
+		m_timer_id = setInterval(Chk_YMPlayer, mc_sec_interval * 1000);
 	};
 
 	this.Stop = () => {
@@ -101,14 +130,28 @@ const g_ym_continue = new function() {
 	};
 
 	const Chk_YMPlayer = () => {
+
 		Prms_SendMsg_toCS(null)
 		.then((ret) => {
-			g_frm_disp.Append_Txt(ret);
+			if (ret.msg !== null) {
+				g_frm_disp.Append_Txt(ret.msg);
+			}
+			g_frm_info.SetTxt(ret.info);
 		})
 		.catch((err) => {
 			g_frm_disp.Append_Txt('!!! catch: Prms_SendMsg_toCS() is failed.');
 			g_frm_disp.Append_Txt(err.message);
 		});
 
+		m_elapsed_sec += mc_sec_interval;
+		const minutes = parseInt(m_elapsed_sec / 60) % 60;
+		const hours = parseInt(m_elapsed_sec / 3600);
+		g_frm_elps_time.SetTxt(hours + '時間 ' + minutes + '分 ' + (m_elapsed_sec % 60) + '秒');
+	};
+
+	this.ClearElapsedTime = () => {
+		m_elapsed_sec = 0;
+		g_frm_elps_time.SetTxt('0時間 0分 0秒');
 	};
 };
+

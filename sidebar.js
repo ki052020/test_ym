@@ -22,6 +22,11 @@ function Create_TxtDiv(parent, txt) {
 	return e_div_txt;
 }
 
+function Get_CurTime() {
+	const date = new Date();
+	return  date.getHours() + ':' + date.getMinutes();
+}
+
 // =========================================
 function Prms_SendMsg_toCS(request) {
 	return browser.tabs.query({currentWindow: true, active: true})
@@ -42,6 +47,7 @@ const g_frm_general = new function() {
 
 	const m_e_btn_start = Create_Btn(m_e_frm, '開始');
 	const m_e_btn_stop = Create_Btn(m_e_frm, '停止');
+	const m_e_btn_test = Create_Btn(m_e_frm, 'テスト');
 	m_e_btn_stop.disabled = true;
 
 	const m_e_btn_clear_disp = Create_Btn(m_e_frm, '画面クリア');
@@ -63,13 +69,17 @@ const g_frm_general = new function() {
 		m_e_btn_stop.disabled = true;
 	};
 
+	m_e_btn_test.onclick = () => {
+		g_ym_continue.Test();
+	};
+
 	m_e_btn_clear_disp.onclick = () => {
 		g_frm_disp.Clear();
 	};
 
 	m_e_btn_clear_info.onclick = () => {
 		g_ym_continue.ClearElapsedTime();
-		g_frm_info.SetTxt('');
+		g_frm_status.Clear('');
 	};
 };
 
@@ -84,8 +94,39 @@ function InfoFrame(str) {
 	};
 };
 
-const g_frm_elps_time = new InfoFrame('経過時間');
-const g_frm_info = new InfoFrame('info');
+const g_frm_elps_time = new function() {
+	const mc_str_title = '　経過時間: ';
+	const m_e_frm = Create_TxtDiv(document.body);
+	m_e_frm.textContent = mc_str_title;
+
+	this.SetTxt = (txt) => {
+		m_e_frm.textContent = mc_str_title + txt;
+	};
+};
+
+const g_frm_status = new function() {
+	let m_str_stt_cur = 'no_status';
+
+	const mc_str_title = '　stauts: ';
+	const m_e_frm = Create_TxtDiv(document.body);
+	m_e_frm.textContent = mc_str_title + m_str_stt_cur;
+
+	this.Clear = () => { m_e_frm.textContent = mc_str_title + m_str_stt_cur; };
+	this.SetStatus = (str_stt) => {
+		if (str_stt === m_str_stt_cur) { return; }
+
+		// m_str_stt_cur の更新
+		g_frm_disp.Append_Txt(
+			'*** ' + Get_CurTime() + '　' + m_str_stt_cur + ' -> ' + str_stt
+		);
+		m_e_frm.textContent = mc_str_title + str_stt;
+		m_str_stt_cur = str_stt;
+	};
+
+	this.SetInfoTxt = (txt) => {
+		m_e_frm.textContent = 'info: ' + txt;
+	};
+};
 
 // -----------------------------------------
 const g_frm_disp = new function() {
@@ -129,14 +170,31 @@ const g_ym_continue = new function() {
 		m_timer_id = 0;
 	};
 
+	let m_val_prev_prog_bar = null;
+	let m_cntr_same = 0;
 	const Chk_YMPlayer = () => {
 
-		Prms_SendMsg_toCS(null)
+		Prms_SendMsg_toCS('test')
 		.then((ret) => {
-			if (ret.msg !== null) {
-				g_frm_disp.Append_Txt(ret.msg);
+			if (ret !== m_val_prev_prog_bar) {
+				g_frm_status.SetInfoTxt(ret);
+				m_val_prev_prog_bar = ret;
+
+				m_cntr_same = 0;
+				return;
 			}
-			g_frm_info.SetTxt(ret.info);
+
+			m_cntr_same++;
+			if (m_cntr_same < 3) {
+				g_frm_disp.Append_Txt(
+					'*** ' + Get_CurTime() + ' same val / ' + m_cntr_same + '回目'
+				);
+				return;
+			}
+
+			g_frm_disp.Append_Txt('*** call press_btn');
+			m_cntr_same = 0;
+			return Prms_SendMsg_toCS('press_btn');
 		})
 		.catch((err) => {
 			g_frm_disp.Append_Txt('!!! catch: Prms_SendMsg_toCS() is failed.');
@@ -152,6 +210,21 @@ const g_ym_continue = new function() {
 	this.ClearElapsedTime = () => {
 		m_elapsed_sec = 0;
 		g_frm_elps_time.SetTxt('0時間 0分 0秒');
+	};
+
+	// -----------------------------------------
+	this.Test = () => {
+		g_frm_disp.Append_Txt('--- test 開始');
+
+		Prms_SendMsg_toCS('test')
+		.then((ret) => {
+			g_frm_disp.Append_Txt(ret);
+			g_frm_disp.Append_Txt('--- test 終了');
+		})
+		.catch((err) => {
+			g_frm_disp.Append_Txt('!!! catch: Prms_SendMsg_toCS() is failed.');
+			g_frm_disp.Append_Txt(err.message);
+		});
 	};
 };
 

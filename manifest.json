@@ -8,7 +8,7 @@
 		{
 			"matches": ["https://music.youtube.com/*"],
 			"js": [
-				"cs/cs.js"
+				"cs.js"
 			]
 		}
 	],
@@ -19,7 +19,7 @@
 
 	"sidebar_action": {
 		"default_title": "test",
-		"default_panel": "sidebar/sidebar.html",
+		"default_panel": "sidebar.html",
 		"default_icon": "star.png"
 	}
 }

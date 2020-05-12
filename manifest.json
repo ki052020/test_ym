@@ -1,0 +1,25 @@
+{
+	"manifest_version": 2,
+	"name": "test",
+	"version": "0.1",
+	"description": "test",
+
+	"content_scripts": [
+		{
+			"matches": ["https://music.youtube.com/*"],
+			"js": [
+				"cs/cs.js"
+			]
+		}
+	],
+
+	"permissions": [
+		"tabs"
+	],
+
+	"sidebar_action": {
+		"default_title": "test",
+		"default_panel": "sidebar/sidebar.html",
+		"default_icon": "star.png"
+	}
+}
